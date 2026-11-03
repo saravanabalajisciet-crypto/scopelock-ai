@@ -21,7 +21,7 @@ export default function TopBar({ title, description, healthStatus }: TopBarProps
       <div className="flex items-center gap-3 min-w-0">
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg lg:hidden"
-          style={{ background: "linear-gradient(135deg, #6B4F87 0%, #3E2B55 100%)" }}
+          style={{ background: "linear-gradient(135deg, #55416E 0%, #292039 100%)" }}
         >
           <ShieldCheck size={16} strokeWidth={2.5} color="#FFFFFF" />
         </div>
@@ -128,7 +128,7 @@ export default function TopBar({ title, description, healthStatus }: TopBarProps
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-white"
             style={{
-              background: "linear-gradient(135deg, #6B4F87 0%, #3E2B55 100%)",
+              background: "linear-gradient(135deg, #55416E 0%, #292039 100%)",
               boxShadow: "0 2px 6px rgba(85,65,110,0.3)",
             }}
           >

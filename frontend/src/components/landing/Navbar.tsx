@@ -1,12 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Menu, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Menu,
+  X,
+  ShieldCheck,
+} from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Product", href: "#problem" },
-  { label: "How It Works", href: "#how-it-works" },
+  { label: "Platform", href: "#platform" },
+  { label: "How it works", href: "#how-it-works" },
   { label: "Security", href: "#security" },
 ];
 
@@ -14,130 +19,85 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        height: "64px",
-        backgroundColor: "#FFFFFF",
-        borderBottom: "1px solid #E9E2EF",
-      }}
-    >
-      <nav
-        className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-6 lg:px-8"
-      >
-        {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 shrink-0"
-          aria-label="ScopeLock AI home"
-        >
-          <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-            style={{ background: "linear-gradient(135deg, #6B4F87 0%, #3E2B55 100%)" }}
-          >
-            <ShieldCheck size={14} strokeWidth={2.5} color="#FFFFFF" />
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#0B1020]/90 backdrop-blur-xl">
+      <nav className="mx-auto flex h-[76px] max-w-[1320px] items-center justify-between px-6 lg:px-10">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10">
+            <ShieldCheck size={21} className="text-cyan-300" />
           </div>
-          <span
-            className="text-[14px] font-bold tracking-tight"
-            style={{ color: "#292039" }}
-          >
-            ScopeLock AI
-          </span>
+          <div>
+            <span className="block text-[16px] font-semibold tracking-tight text-white">
+              ScopeLock<span className="text-cyan-300">.</span>
+            </span>
+            <span className="block text-[9px] font-medium uppercase tracking-[0.22em] text-slate-500">
+              Payment intelligence
+            </span>
+          </div>
         </Link>
 
-        {/* Desktop nav links */}
-        <div className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((l) => (
+        <div className="hidden items-center gap-9 md:flex">
+          {NAV_LINKS.map((link) => (
             <a
-              key={l.href}
-              href={l.href}
-              className="text-[14px] font-medium transition-colors"
-              style={{ color: "#55416E" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#292039")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#55416E")}
+              key={link.href}
+              href={link.href}
+              className="text-[13px] font-medium text-slate-400 transition-colors hover:text-white"
             >
-              {l.label}
+              {link.label}
             </a>
           ))}
         </div>
 
-        {/* Desktop CTAs */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-5 md:flex">
+          <span className="flex items-center gap-2 text-[11px] text-slate-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Payment assurance
+          </span>
+
           <Link
             href="/workspace"
-            className="text-[14px] font-medium transition-colors"
-            style={{ color: "#55416E" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#292039")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#55416E")}
+            className="group inline-flex items-center gap-3 rounded-xl border border-cyan-300/20 bg-cyan-400 px-5 py-3 text-[13px] font-semibold text-[#101020] transition-all hover:bg-cyan-300"
           >
-            Sign In
-          </Link>
-          <Link
-            href="/workspace"
-            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-all"
-            style={{ backgroundColor: "#55416E" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#3E2B55")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#55416E")}
-          >
-            Launch Workspace →
+            Enter workspace
+            <ArrowUpRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
           </Link>
         </div>
 
-        {/* Mobile hamburger */}
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen((value) => !value)}
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
-          className="flex h-9 w-9 items-center justify-center rounded-lg md:hidden"
-          style={{ color: "#55416E" }}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white md:hidden"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </nav>
 
-      {/* Mobile drawer */}
       {open && (
-        <div
-          className="absolute inset-x-0 top-[64px] border-b md:hidden"
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderColor: "#E9E2EF",
-            zIndex: 49,
-          }}
-        >
-          <div className="space-y-1 px-6 py-4">
-            {NAV_LINKS.map((l) => (
+        <div className="border-t border-white/10 bg-[#101629] px-6 py-5 md:hidden">
+          <div className="mx-auto max-w-[1320px] space-y-2">
+            {NAV_LINKS.map((link) => (
               <a
-                key={l.href}
-                href={l.href}
+                key={link.href}
+                href={link.href}
                 onClick={() => setOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors"
-                style={{ color: "#55416E" }}
+                className="block rounded-lg px-3 py-3 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
-                {l.label}
+                {link.label}
               </a>
             ))}
-            <div className="mt-3 border-t pt-3" style={{ borderColor: "#E9E2EF" }}>
-              <Link
-                href="/workspace"
-                onClick={() => setOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors"
-                style={{ color: "#55416E" }}
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/workspace"
-                onClick={() => setOpen(false)}
-                className="mt-2 flex items-center justify-center rounded-lg px-5 py-3 text-[14px] font-semibold text-white"
-                style={{ backgroundColor: "#55416E" }}
-              >
-                Launch Workspace →
-              </Link>
-            </div>
+
+            <Link
+              href="/workspace"
+              onClick={() => setOpen(false)}
+              className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3.5 text-sm font-semibold text-[#101020]"
+            >
+              Enter workspace
+              <ArrowUpRight size={16} />
+            </Link>
           </div>
         </div>
       )}

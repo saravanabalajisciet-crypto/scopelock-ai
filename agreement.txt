@@ -1,0 +1,19 @@
+PROJECT AGREEMENT
+
+Client: ABC Technologies
+Developer: Saravana
+
+Milestone: Backend API Development
+
+Agreed Currency: USD
+Agreed Amount: 20.00
+
+Payment Due: After milestone completion.
+
+The client agrees to pay the developer
+USD 20.00 upon successful completion
+of the Backend API Development milestone.
+
+Both parties agree that this payment
+corresponds to the Backend API Development
+milestone.

@@ -1,15 +1,62 @@
-
+import logging
+import sqlite3
 from decimal import Decimal
+from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+from documents import router as documents_router
+from paypal_client import (
+    create_order,
+    get_access_token,
+    get_order,
+    capture_order,
+)
+
+logger = logging.getLogger(__name__)
+
+DB_PATH = Path(__file__).with_name("scopelock_orders.db")
+
+
+def init_order_store():
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS payment_orders (
+                order_id TEXT PRIMARY KEY,
+                amount TEXT NOT NULL,
+                currency TEXT NOT NULL,
+                milestone TEXT NOT NULL,
+                status TEXT NOT NULL
+            )
+            """
+        )
+
+
+init_order_store()
 
 app = FastAPI(
     title="ScopeLock AI",
-    description="Validate milestone payments before checkout.",
-    version="0.2.0",
+    description="AI-powered agreement and invoice validation with PayPal.",
+    version="0.6.0",
 )
+
+# CORS: Allow the Next.js frontend to communicate with FastAPI.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(documents_router)
 
 
 class PaymentValidationRequest(BaseModel):
@@ -41,8 +88,6 @@ def health_check():
     return {"status": "healthy"}
 
 
-
-@app.post("/validate", response_model=PaymentValidationResponse)
 def validate_payment(data: PaymentValidationRequest):
     reasons = []
     needs_review = False
@@ -86,3 +131,231 @@ def validate_payment(data: PaymentValidationRequest):
         agreed_amount=data.agreed_amount,
         requested_amount=data.requested_amount,
     )
+
+
+@app.post("/validate", response_model=PaymentValidationResponse)
+def validate_payment_endpoint(data: PaymentValidationRequest):
+    return validate_payment(data)
+
+
+@app.get("/paypal/connection")
+async def paypal_connection():
+    try:
+        token_data = await get_access_token()
+
+        return {
+            "status": "CONNECTED",
+            "provider": "PayPal Sandbox",
+            "token_type": token_data.get("token_type"),
+            "expires_in": token_data.get("expires_in"),
+        }
+
+    except Exception:
+        logger.exception("PayPal authentication failed")
+        raise HTTPException(
+            status_code=502,
+            detail="PayPal Sandbox authentication failed. Check server logs.",
+        )
+
+
+@app.post("/paypal/create-order")
+async def paypal_create_order(data: PaymentValidationRequest):
+    validation = validate_payment(data)
+
+    if validation.result != "PASS":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Payment blocked by ScopeLock validation.",
+                "validation_result": validation.result,
+                "reasons": validation.reasons,
+            },
+        )
+
+    try:
+        currency = data.requested_currency.upper()
+        amount = data.requested_amount.quantize(Decimal("0.01"))
+
+        order = await create_order(
+            amount=amount,
+            currency=currency,
+            description=f"ScopeLock milestone: {data.requested_milestone}",
+        )
+
+        order_id = order.get("id")
+
+        if not order_id:
+            raise RuntimeError("PayPal did not return an order ID.")
+
+        approval_url = next(
+            (
+                link["href"]
+                for link in order.get("links", [])
+                if link.get("rel") in ("approve", "payer-action")
+            ),
+            None,
+        )
+
+        if not approval_url:
+            raise RuntimeError("PayPal approval URL was not returned.")
+
+        with sqlite3.connect(DB_PATH) as connection:
+            connection.execute(
+                """
+                INSERT INTO payment_orders
+                (order_id, amount, currency, milestone, status)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    order_id,
+                    format(amount, ".2f"),
+                    currency,
+                    data.requested_milestone,
+                    "CREATED",
+                ),
+            )
+
+        return {
+            "status": "ORDER_CREATED",
+            "validation_result": validation.result,
+            "provider": "PayPal Sandbox",
+            "order_id": order_id,
+            "approval_url": approval_url,
+            "message": "Payment order created. Buyer approval is required.",
+        }
+
+    except Exception:
+        logger.exception("PayPal order creation failed")
+        raise HTTPException(
+            status_code=502,
+            detail="PayPal order creation failed. Check Uvicorn terminal logs.",
+        )
+
+
+@app.get("/paypal/return")
+async def paypal_return(token: str):
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+        saved_order = connection.execute(
+            "SELECT * FROM payment_orders WHERE order_id = ?",
+            (token,),
+        ).fetchone()
+
+    if saved_order is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found in ScopeLock records.",
+        )
+
+    if saved_order["status"] == "COMPLETED":
+        return {
+            "status": "COMPLETED",
+            "order_id": token,
+            "message": "This payment has already been captured.",
+        }
+
+    try:
+        paypal_order = await get_order(token)
+
+        if paypal_order.get("id") != token:
+            raise HTTPException(
+                status_code=400,
+                detail="PayPal order ID verification failed.",
+            )
+
+        if paypal_order.get("status") != "APPROVED":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "PayPal order has not been approved.",
+                    "paypal_status": paypal_order.get("status"),
+                },
+            )
+
+        purchase_units = paypal_order.get("purchase_units", [])
+
+        if not purchase_units:
+            raise HTTPException(
+                status_code=400,
+                detail="PayPal order has no purchase unit.",
+            )
+
+        paypal_amount = purchase_units[0].get("amount", {})
+
+        if (
+            paypal_amount.get("value") != saved_order["amount"]
+            or paypal_amount.get("currency_code", "").upper()
+            != saved_order["currency"]
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="PayPal amount or currency does not match the saved order.",
+            )
+
+        capture = await capture_order(token)
+
+        if capture.get("status") != "COMPLETED":
+            logger.error(
+                "PayPal capture did not complete for order %s. Status: %s",
+                token,
+                capture.get("status"),
+            )
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "PayPal capture is not completed.",
+                    "capture_status": capture.get("status"),
+                },
+            )
+
+        with sqlite3.connect(DB_PATH) as connection:
+            connection.execute(
+                """
+                UPDATE payment_orders
+                SET status = ?
+                WHERE order_id = ?
+                """,
+                ("COMPLETED", token),
+            )
+
+        return {
+            "status": "COMPLETED",
+            "provider": "PayPal Sandbox",
+            "order_id": token,
+            "capture_id": (
+                capture.get("purchase_units", [{}])[0]
+                .get("payments", {})
+                .get("captures", [{}])[0]
+                .get("id")
+            ),
+            "message": "Payment successfully captured by PayPal.",
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        logger.exception("PayPal return/capture processing failed")
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to verify or capture PayPal payment. Check server logs.",
+        )
+
+
+@app.get("/paypal/cancel")
+def paypal_cancel(token: str | None = None):
+    if token:
+        with sqlite3.connect(DB_PATH) as connection:
+            connection.execute(
+                """
+                UPDATE payment_orders
+                SET status = ?
+                WHERE order_id = ? AND status = ?
+                """,
+                ("CANCELLED", token, "CREATED"),
+            )
+
+    return {
+        "status": "CANCELLED",
+        "message": "Payment approval was cancelled. No capture was requested.",
+    }

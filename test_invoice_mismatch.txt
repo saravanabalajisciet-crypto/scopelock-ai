@@ -1,0 +1,14 @@
+INVOICE
+
+Invoice Number: INV-2026-001
+Client: ABC Technologies
+Developer: Saravana
+
+Milestone: Backend API Development
+Invoice Amount: INR 25000
+Payment Due Date: 15 November 2026
+
+Payment is requested upon completion
+of the Backend API Development milestone.
+
+Total: INR 25000

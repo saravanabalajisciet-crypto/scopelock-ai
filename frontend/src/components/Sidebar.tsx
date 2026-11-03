@@ -56,7 +56,7 @@ export default function Sidebar({ activePage, onNavigate, healthStatus }: Sideba
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{
-            background: "linear-gradient(135deg, #6B4F87 0%, #3E2B55 100%)",
+            background: "linear-gradient(135deg, #55416E 0%, #292039 100%)",
             boxShadow: "0 2px 8px rgba(85,65,110,0.4)",
           }}
         >

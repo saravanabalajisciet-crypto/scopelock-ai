@@ -1,29 +1,22 @@
 "use client";
 
-import React from "react";
-import {
-  FileCheck2,
-  History,
-  LayoutDashboard,
-  Settings,
-} from "lucide-react";
+import { FileCheck2, History, LayoutDashboard, Settings } from "lucide-react";
+import type { Page } from "@/components/Sidebar";
 
-type Page = "overview" | "validate" | "history" | "settings";
-
-type MobileNavProps = {
+interface MobileNavProps {
   activePage: Page;
   onNavigate: (p: Page) => void;
-};
+}
 
-const items: {
+const ITEMS: {
   label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   page: Page;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }[] = [
-  { label: "Overview", icon: LayoutDashboard, page: "overview" },
-  { label: "Validate", icon: FileCheck2, page: "validate" },
-  { label: "History", icon: History, page: "history" },
-  { label: "Settings", icon: Settings, page: "settings" },
+  { label: "Overview", page: "overview", icon: LayoutDashboard },
+  { label: "Validate", page: "validate", icon: FileCheck2 },
+  { label: "History", page: "history", icon: History },
+  { label: "Settings", page: "settings", icon: Settings },
 ];
 
 export default function MobileNav({ activePage, onNavigate }: MobileNavProps) {
@@ -37,13 +30,12 @@ export default function MobileNav({ activePage, onNavigate }: MobileNavProps) {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {items.map(({ label, icon: Icon, page }) => {
+      {ITEMS.map(({ label, page, icon: Icon }) => {
         const active = activePage === page;
         return (
           <button
             key={page}
             type="button"
-            aria-label={label}
             aria-current={active ? "page" : undefined}
             onClick={() => onNavigate(page)}
             className="flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors"
@@ -55,11 +47,8 @@ export default function MobileNav({ activePage, onNavigate }: MobileNavProps) {
               if (!active) e.currentTarget.style.color = "#A89BB0";
             }}
           >
-            <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-            <span
-              className="text-[10px] font-semibold"
-              style={{ color: "inherit" }}
-            >
+            <Icon size={19} strokeWidth={active ? 2.3 : 1.8} />
+            <span className="text-[9px] font-bold" style={{ color: "inherit" }}>
               {label}
             </span>
           </button>

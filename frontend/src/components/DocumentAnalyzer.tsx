@@ -385,7 +385,7 @@ function ValidatePage({
             className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-[14px] font-semibold text-white transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-35"
             style={{
               background: canAnalyze
-                ? "linear-gradient(135deg, #6B4F87 0%, #403052 100%)"
+                ? "linear-gradient(135deg, #55416E 0%, #292039 100%)"
                 : "#C2B7CE",
               boxShadow: canAnalyze ? "0 4px 16px rgba(85,65,110,0.35)" : "none",
             }}
@@ -564,7 +564,7 @@ function OverviewPage({
       <div
         className="relative overflow-hidden rounded-2xl"
         style={{
-          background: "linear-gradient(150deg, #5A4375 0%, #3E2B55 100%)",
+          background: "linear-gradient(150deg, #5A4375 0%, #292039 100%)",
           boxShadow: "0 12px 36px rgba(41,32,57,0.16)",
         }}
       >
@@ -593,7 +593,7 @@ function OverviewPage({
             className="mt-6 flex items-center gap-2.5 rounded-xl px-6 py-3 text-[14px] font-semibold transition-all hover:opacity-90"
             style={{
               backgroundColor: "#FFFFFF",
-              color: "#3E2B55",
+              color: "#292039",
               boxShadow: "0 6px 18px rgba(0,0,0,0.16)",
             }}
           >
@@ -733,6 +733,7 @@ export default function DocumentAnalyzer() {
 
   async function handleProceedToPayment() {
     if (!result || result.validation.result !== "PASS") return;
+    if (paypalLoading) return;
     const v = result.validation;
     setPaypalLoading(true);
     try {

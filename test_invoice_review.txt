@@ -1,0 +1,12 @@
+INVOICE
+
+Invoice Number: INV-2026-002
+Client: ABC Technologies
+Developer: Saravana
+
+Invoice Amount: INR 20000
+Payment Due Date: 15 November 2026
+
+Payment requested for completed work.
+
+Total: INR 20000

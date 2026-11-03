@@ -6,3 +6,16 @@ __pycache__/
 !.env.example
 *.pyc
 uploads/
+
+*.db
+*.db-shm
+*.db-wal
+
+# Internal agent files
+/.agents/
+/frontend/.agents/
+
+# Local build and dependency files
+/frontend/node_modules/
+/frontend/.next/
+/frontend/.vercel/
