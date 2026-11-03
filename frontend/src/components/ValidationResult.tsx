@@ -9,9 +9,10 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowRight,
-  Fingerprint,
-  Hash,
   Loader2,
+  ShieldCheck,
+  FileText,
+  Hash,
 } from "lucide-react";
 
 interface ValidationData {
@@ -35,212 +36,239 @@ export interface AnalysisResponse {
   invoice_extraction: Record<string, unknown>;
 }
 
-type Props = {
+interface Props {
   result: AnalysisResponse;
   onProceedToPayment?: () => void;
   paypalLoading?: boolean;
-};
+}
 
-const statusConfig = {
+const STATUS = {
   PASS: {
     Icon: CheckCircle2,
     label: "PASS",
-    title: "Validation passed",
-    description:
-      "All required checks passed. This document pair is eligible for the next authorization step.",
-    bannerBg: "#F0F8F2",
-    bannerBorder: "#B8DABD",
-    bannerText: "#2E5E3A",
-    accentBar: "#4D7958",
-    labelBg: "#E2F1E5",
-    labelText: "#2E5E3A",
+    headline: "Validation Passed",
+    body: "All checks passed. Documents are consistent and eligible for payment authorization.",
+    topBar: "#4D7958",
+    bannerBg: "#F2FAF4",
+    bannerBorder: "#B8D9BE",
+    textColor: "#1E4A2A",
+    labelBg: "#D9EFE0",
+    iconBg: "#E6F4EB",
   },
   REVIEW: {
     Icon: AlertTriangle,
     label: "REVIEW",
-    title: "Manual review required",
-    description:
-      "Some information requires human verification before this payment can proceed.",
-    bannerBg: "#FFFBF0",
-    bannerBorder: "#F0D98C",
-    bannerText: "#7A5210",
-    accentBar: "#B7791F",
+    headline: "Manual Review Required",
+    body: "Some information requires human verification before this payment can proceed.",
+    topBar: "#B7791F",
+    bannerBg: "#FFFCF0",
+    bannerBorder: "#EDD898",
+    textColor: "#6B4A0E",
     labelBg: "#FEF3C7",
-    labelText: "#7A5210",
+    iconBg: "#FEF7E0",
   },
   BLOCK: {
     Icon: XCircle,
     label: "BLOCK",
-    title: "Payment blocked",
-    description:
-      "A critical mismatch was detected. This payment must not proceed until resolved.",
-    bannerBg: "#FEF1F2",
+    headline: "Payment Blocked",
+    body: "A critical mismatch was detected. This payment cannot proceed until discrepancies are resolved.",
+    topBar: "#C34E5A",
+    bannerBg: "#FFF1F2",
     bannerBorder: "#F4BCBF",
-    bannerText: "#8C1D25",
-    accentBar: "#C34E5A",
+    textColor: "#7A1520",
     labelBg: "#FDE8EA",
-    labelText: "#8C1D25",
+    iconBg: "#FDE8EA",
   },
 } as const;
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="text-[10px] font-bold uppercase tracking-[0.14em]"
+      style={{ color: "#A89BB0" }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function money(amount: number, currency: string): string {
+  return `${amount} ${currency ?? ""}`.trim();
+}
+
 export default function ValidationResult({ result, onProceedToPayment, paypalLoading }: Props) {
   const [rawOpen, setRawOpen] = useState(false);
-
   const { validation } = result;
-  const cfg = statusConfig[validation.result];
+  const cfg = STATUS[validation.result];
   const { Icon } = cfg;
-
-  const comparisonItems = [
-    {
-      label: "Agreement amount",
-      value:
-        validation.agreed_amount != null
-          ? `${validation.agreed_amount} ${validation.agreed_currency ?? ""}`.trim()
-          : "Not available",
-    },
-    {
-      label: "Invoice amount",
-      value:
-        validation.requested_amount != null
-          ? `${validation.requested_amount} ${validation.requested_currency ?? ""}`.trim()
-          : "Not available",
-    },
-    {
-      label: "Agreement milestone",
-      value: validation.agreed_milestone ?? "Not available",
-    },
-    {
-      label: "Invoice milestone",
-      value: validation.requested_milestone ?? "Not available",
-    },
-  ];
+  const isPass = validation.result === "PASS";
+  const isBlock = validation.result === "BLOCK";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-4"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="space-y-3"
     >
-      {/* ── Status banner card ── */}
+      {/* ── Decision banner ── */}
       <div
-        className="overflow-hidden rounded-xl border"
+        className="overflow-hidden rounded-xl"
         style={{
+          border: `1px solid ${cfg.bannerBorder}`,
           backgroundColor: cfg.bannerBg,
-          borderColor: cfg.bannerBorder,
-          boxShadow: "0 1px 4px rgba(41,32,57,0.06), 0 4px 16px rgba(41,32,57,0.04)",
+          boxShadow: isBlock
+            ? "0 4px 18px rgba(195,78,90,0.12)"
+            : "0 2px 12px rgba(41,32,57,0.06)",
         }}
       >
-        {/* Accent top bar */}
-        <div className="h-1 w-full" style={{ backgroundColor: cfg.accentBar }} />
+        {/* Accent bar — thicker for a financial-approval feel */}
+        <div className="h-1.5" style={{ backgroundColor: cfg.topBar }} />
 
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "rgba(255,255,255,0.7)", color: cfg.bannerText }}
-          >
-            <Icon size={24} />
-          </div>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-2.5">
-              <span
-                className="rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider"
-                style={{ backgroundColor: cfg.labelBg, color: cfg.labelText }}
-              >
-                {cfg.label}
-              </span>
-              <p className="text-[15px] font-bold" style={{ color: cfg.bannerText }}>
-                {cfg.title}
-              </p>
-            </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: cfg.bannerText, opacity: 0.85 }}>
-              {cfg.description}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Document comparison ── */}
-      <div
-        className="rounded-xl border"
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderColor: "#E9E2EF",
-          boxShadow: "0 1px 4px rgba(41,32,57,0.06), 0 4px 16px rgba(41,32,57,0.04)",
-        }}
-      >
-        <div
-          className="flex items-center gap-2 border-b px-5 py-4"
-          style={{ borderColor: "#F0EBF5" }}
-        >
-          <p
-            className="text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#A89BB0" }}
-          >
-            Document Comparison
-          </p>
-        </div>
-        <div className="grid gap-px sm:grid-cols-2" style={{ backgroundColor: "#F0EBF5" }}>
-          {comparisonItems.map(({ label, value }) => (
+        <div className="p-6">
+          <div className="flex items-start gap-4">
             <div
-              key={label}
-              className="p-4"
-              style={{ backgroundColor: "#FFFFFF" }}
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: cfg.iconBg, color: cfg.topBar }}
             >
-              <p
-                className="text-[10px] font-bold uppercase tracking-[0.12em]"
-                style={{ color: "#A89BB0" }}
-              >
-                {label}
-              </p>
-              <p
-                className="mt-2 break-words text-[15px] font-semibold"
-                style={{ color: "#292039" }}
-              >
-                {value}
-              </p>
+              <Icon size={28} />
             </div>
-          ))}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span
+                  className="text-[12px] font-black tracking-[0.12em] px-3 py-1 rounded-md"
+                  style={{ backgroundColor: cfg.labelBg, color: cfg.textColor }}
+                >
+                  {cfg.label}
+                </span>
+                <h3
+                  className="text-[18px] font-bold tracking-tight"
+                  style={{ color: cfg.textColor }}
+                >
+                  {cfg.headline}
+                </h3>
+              </div>
+              <p
+                className="mt-2 text-[13.5px] leading-relaxed max-w-2xl"
+                style={{ color: cfg.textColor, opacity: 0.82 }}
+              >
+                {cfg.body}
+              </p>
+
+              {/* Approved amount — financial approval feel for PASS */}
+              {isPass && (
+                <div
+                  className="mt-4 flex items-end gap-2 rounded-xl px-4 py-3"
+                  style={{ backgroundColor: cfg.iconBg }}
+                >
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-[0.14em] pb-0.5"
+                    style={{ color: cfg.textColor, opacity: 0.7 }}
+                  >
+                    Approved amount
+                  </span>
+                  <span
+                    className="text-[22px] font-bold tracking-tight leading-none"
+                    style={{ color: cfg.textColor }}
+                  >
+                    {money(validation.agreed_amount, validation.agreed_currency)}
+                  </span>
+                </div>
+              )}
+
+              {/* Block emphasis — serious, no payment path */}
+              {isBlock && (
+                <p
+                  className="mt-3.5 flex items-center gap-2 text-[12px] font-semibold"
+                  style={{ color: cfg.textColor }}
+                >
+                  <ShieldCheck size={13} />
+                  Payment authorization is disabled for this validation.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Decision evidence ── */}
+      {/* ── Comparison table ── */}
       <div
-        className="rounded-xl border"
+        className="overflow-hidden rounded-xl"
         style={{
+          border: "1px solid #E9E2EF",
           backgroundColor: "#FFFFFF",
-          borderColor: "#E9E2EF",
-          boxShadow: "0 1px 4px rgba(41,32,57,0.06), 0 4px 16px rgba(41,32,57,0.04)",
+          boxShadow: "0 1px 4px rgba(41,32,57,0.05)",
         }}
       >
         <div
-          className="flex items-center gap-2.5 border-b px-5 py-4"
-          style={{ borderColor: "#F0EBF5" }}
+          className="flex items-center gap-3 px-5 py-4"
+          style={{ borderBottom: "1px solid #F0EBF5" }}
         >
-          <Fingerprint size={15} style={{ color: "#7B6191" }} />
-          <p
-            className="text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#A89BB0" }}
-          >
-            Decision Evidence
-          </p>
+          <FileText size={14} style={{ color: "#7B6191" }} />
+          <SectionLabel>Document Comparison</SectionLabel>
         </div>
-        <ul className="divide-y p-2" style={{ borderColor: "#F7F3FB" }}>
+
+        {/* Column headers */}
+        <div
+          className="grid grid-cols-3 px-5 py-2.5"
+          style={{ borderBottom: "1px solid #F0EBF5", backgroundColor: "#FBFAFC" }}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#A89BB0" }}>
+            Field
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#A89BB0" }}>
+            Agreement
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#A89BB0" }}>
+            Invoice
+          </span>
+        </div>
+
+        {/* Rows: Amount, Milestone */}
+        <div>
+          <ComparisonRow
+            label="Amount"
+            agreed={money(validation.agreed_amount, validation.agreed_currency)}
+            requested={money(validation.requested_amount, validation.requested_currency)}
+            highlight={!isPass}
+          />
+          <div style={{ borderTop: "1px solid #F0EBF5" }} />
+          <ComparisonRow
+            label="Milestone"
+            agreed={validation.agreed_milestone || "—"}
+            requested={validation.requested_milestone || "—"}
+            highlight={!isPass}
+          />
+        </div>
+      </div>
+
+      {/* ── Reasons ── */}
+      <div
+        className="overflow-hidden rounded-xl"
+        style={{
+          border: "1px solid #E9E2EF",
+          backgroundColor: "#FFFFFF",
+          boxShadow: "0 1px 4px rgba(41,32,57,0.05)",
+        }}
+      >
+        <div
+          className="flex items-center gap-3 px-5 py-4"
+          style={{ borderBottom: "1px solid #F0EBF5" }}
+        >
+          <ShieldCheck size={14} style={{ color: "#7B6191" }} />
+          <SectionLabel>Validation Evidence</SectionLabel>
+        </div>
+        <ul className="divide-y" style={{ borderColor: "#F8F4FC" }}>
           {validation.reasons.map((reason, i) => {
-            const isPass = validation.result === "PASS";
-            const iconColor = isPass ? "#3D6647" : validation.result === "BLOCK" ? "#B03545" : "#92580F";
+            const color = isPass ? "#2E6641" : isBlock ? "#B03545" : "#7A5210";
+            const Icon2 = isPass ? CheckCircle2 : AlertTriangle;
             return (
               <li
                 key={i}
-                className="flex items-start gap-3 px-3 py-3 text-[13px] leading-relaxed"
-                style={{ color: "#4A3F54" }}
+                className="flex items-start gap-3 px-5 py-3.5 text-[13px] leading-relaxed"
+                style={{ color: "#4A3F54", borderColor: "#F8F4FC" }}
               >
-                {isPass ? (
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: iconColor }} />
-                ) : (
-                  <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: iconColor }} />
-                )}
+                <Icon2 size={14} className="mt-0.5 shrink-0" style={{ color }} />
                 {reason}
               </li>
             );
@@ -248,30 +276,22 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
         </ul>
       </div>
 
-      {/* ── Validation reference ── */}
+      {/* ── Validation ID ── */}
       <div
-        className="rounded-xl border"
+        className="overflow-hidden rounded-xl"
         style={{
+          border: "1px solid #E9E2EF",
           backgroundColor: "#FFFFFF",
-          borderColor: "#E9E2EF",
-          boxShadow: "0 1px 4px rgba(41,32,57,0.06), 0 4px 16px rgba(41,32,57,0.04)",
+          boxShadow: "0 1px 4px rgba(41,32,57,0.05)",
         }}
       >
-        <div
-          className="flex items-center gap-2.5 border-b px-5 py-4"
-          style={{ borderColor: "#F0EBF5" }}
-        >
+        <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid #F0EBF5" }}>
           <Hash size={13} style={{ color: "#7B6191" }} />
-          <p
-            className="text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#A89BB0" }}
-          >
-            Validation Reference
-          </p>
+          <SectionLabel>Validation Reference</SectionLabel>
         </div>
         <div className="px-5 py-4">
           <p
-            className="break-all font-mono text-[12px]"
+            className="break-all font-mono text-[12px] leading-relaxed"
             style={{ color: "#55416E" }}
           >
             {result.validation_id}
@@ -279,59 +299,71 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
         </div>
       </div>
 
-      {/* ── Proceed to payment (PASS only) ── */}
-      {validation.result === "PASS" && onProceedToPayment && (
-        <button
-          type="button"
-          onClick={onProceedToPayment}
-          disabled={paypalLoading}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-[14px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-70"
+      {/* ── PayPal CTA — separate well (PASS only) ── */}
+      {isPass && onProceedToPayment && (
+        <div
+          className="overflow-hidden rounded-xl p-5"
           style={{
-            backgroundColor: "#4D7958",
-            boxShadow: paypalLoading ? "none" : "0 4px 14px rgba(77,121,88,0.3)",
-          }}
-          onMouseEnter={(e) => {
-            if (!paypalLoading) {
-              e.currentTarget.style.backgroundColor = "#3A5E45";
-              e.currentTarget.style.boxShadow = "0 4px 14px rgba(58,94,69,0.35)";
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#4D7958";
-            e.currentTarget.style.boxShadow = paypalLoading
-              ? "none"
-              : "0 4px 14px rgba(77,121,88,0.3)";
+            border: "1px solid #B8D9BE",
+            backgroundColor: "#F2FAF4",
+            boxShadow: "0 2px 10px rgba(77,121,88,0.08)",
           }}
         >
-          {paypalLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Processing…
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={16} />
-              Proceed to Payment
-              <ArrowRight size={15} />
-            </>
-          )}
-        </button>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <p className="text-[14px] font-bold" style={{ color: "#1E4A2A" }}>
+                Payment Authorization
+              </p>
+              <p className="mt-0.5 text-[12px]" style={{ color: "#4D7958" }}>
+                Validated amount · PayPal Sandbox · Backend-controlled
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onProceedToPayment}
+              disabled={paypalLoading}
+              className="flex items-center gap-2.5 rounded-xl px-6 py-3 text-[14px] font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: "#4D7958",
+                boxShadow: paypalLoading ? "none" : "0 4px 14px rgba(77,121,88,0.35)",
+              }}
+              onMouseEnter={(e) => {
+                if (!paypalLoading) {
+                  e.currentTarget.style.backgroundColor = "#3A5E45";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#4D7958";
+              }}
+            >
+              {paypalLoading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Processing…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={15} />
+                  Proceed to Payment
+                  <ArrowRight size={14} />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* ── Raw extraction data (collapsible) ── */}
+      {/* ── Raw extraction (collapsible) ── */}
       <div
-        className="overflow-hidden rounded-xl border"
-        style={{
-          borderColor: "#E9E2EF",
-          boxShadow: "0 1px 4px rgba(41,32,57,0.04)",
-        }}
+        className="overflow-hidden rounded-xl"
+        style={{ border: "1px solid #E9E2EF" }}
       >
         <button
           type="button"
-          className="flex w-full items-center justify-between px-5 py-3.5 text-[12px] font-semibold transition-colors"
-          style={{ backgroundColor: "#FAFAFA", color: "#83778F" }}
           onClick={() => setRawOpen((o) => !o)}
           aria-expanded={rawOpen}
+          className="flex w-full items-center justify-between px-5 py-3.5 text-[12px] font-semibold transition-colors"
+          style={{ backgroundColor: "#FAFAFA", color: "#83778F" }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F5F0F8")}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FAFAFA")}
         >
@@ -339,23 +371,15 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           {rawOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         {rawOpen && (
-          <div
-            className="space-y-4 border-t p-5"
-            style={{ borderColor: "#E9E2EF" }}
-          >
+          <div className="space-y-4 border-t p-5" style={{ borderColor: "#E9E2EF" }}>
             {[
-              { label: "Agreement Extraction", data: result.agreement_extraction },
-              { label: "Invoice Extraction", data: result.invoice_extraction },
+              { label: "Agreement", data: result.agreement_extraction },
+              { label: "Invoice", data: result.invoice_extraction },
             ].map(({ label, data }) => (
               <div key={label}>
-                <p
-                  className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em]"
-                  style={{ color: "#A89BB0" }}
-                >
-                  {label}
-                </p>
+                <SectionLabel>{label} Extraction</SectionLabel>
                 <pre
-                  className="overflow-x-auto rounded-lg p-3 text-[11px] leading-relaxed"
+                  className="mt-2 overflow-x-auto rounded-lg p-3 text-[11px] leading-relaxed"
                   style={{
                     backgroundColor: "#F7F5F9",
                     color: "#403052",
@@ -370,5 +394,41 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
         )}
       </div>
     </motion.div>
+  );
+}
+
+/* ── Comparison row ─────────────────────────────────────────────── */
+
+function ComparisonRow({
+  label,
+  agreed,
+  requested,
+  highlight,
+}: {
+  label: string;
+  agreed: string;
+  requested: string;
+  highlight: boolean;
+}) {
+  const mismatch = highlight && agreed !== requested && agreed !== "—" && requested !== "—";
+  return (
+    <div className="grid grid-cols-3 px-5 py-4">
+      <span className="text-[12px] font-semibold" style={{ color: "#83778F" }}>
+        {label}
+      </span>
+      <span
+        className="text-[14px] font-semibold break-words"
+        style={{ color: "#292039" }}
+      >
+        {agreed}
+      </span>
+      <span
+        className="text-[14px] font-semibold break-words flex items-center gap-1.5"
+        style={{ color: mismatch ? "#B03545" : "#292039" }}
+      >
+        {mismatch && <AlertTriangle size={13} className="shrink-0" style={{ color: "#B03545" }} />}
+        {requested}
+      </span>
+    </div>
   );
 }

@@ -1,42 +1,43 @@
 "use client";
 
-import { Loader2, Upload, X } from "lucide-react";
+import { CloudUpload, Loader2, X, FileText, FileCheck2 } from "lucide-react";
 import type React from "react";
 import { useRef } from "react";
 
-type UploadCardProps = {
+interface UploadCardProps {
   title: string;
-  subtitle: string;
   description: string;
   file: File | null;
   onChange: (file: File | null) => void;
-  icon: React.ReactNode;
+  accentColor: string;
+  accentBg: string;
   dragOver?: boolean;
   onDragOver?: (e: React.DragEvent) => void;
   onDragLeave?: () => void;
   onDrop?: (e: React.DragEvent) => void;
   error?: string;
   uploading?: boolean;
-};
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getTypeBadge(file: File): string {
-  const ext = file.name.split(".").pop()?.toUpperCase();
-  return ext === "PDF" || ext === "TXT" ? ext : (ext ?? "FILE");
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function FileTypeIcon({ name }: { name: string }) {
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return <FileCheck2 size={20} />;
+  return <FileText size={20} />;
 }
 
 export default function UploadCard({
   title,
-  subtitle,
   description,
   file,
   onChange,
-  icon,
+  accentColor,
+  accentBg,
   dragOver,
   onDragOver,
   onDragLeave,
@@ -45,16 +46,7 @@ export default function UploadCard({
   uploading,
 }: UploadCardProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const borderColor = error
-    ? "#C34E5A"
-    : uploading
-    ? "#55416E"
-    : dragOver
-    ? "#55416E"
-    : "#D8CCE2";
-  const bgColor = error ? "#FDF0F2" : dragOver ? "#F1EBF7" : "#FAF8FC";
-  const borderStyle = dragOver ? "solid" : "dashed";
+  const inputId = `upload-${title.replace(/\s+/g, "-").toLowerCase()}`;
 
   function handleRemove(e: React.MouseEvent) {
     e.preventDefault();
@@ -63,22 +55,29 @@ export default function UploadCard({
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  const hasError = !!error;
+
+  // Border and background vary by state
+  const borderColor = hasError ? "#C34E5A" : dragOver ? accentColor : "#D8CCE4";
+  const bg = hasError ? "#FEF2F3" : dragOver ? accentBg : "#FCFBFD";
+  const ring = dragOver ? `0 0 0 3px ${accentBg}` : "none";
+
   return (
     <div
-      className="relative flex flex-col rounded-xl transition-all duration-200"
+      className="relative flex flex-col rounded-xl overflow-hidden transition-all duration-200"
       style={{
-        border: `1.5px ${borderStyle} ${borderColor}`,
-        backgroundColor: bgColor,
-        minHeight: "190px",
+        border: `1.5px dashed ${borderColor}`,
+        backgroundColor: bg,
+        boxShadow: ring,
+        minHeight: "220px",
       }}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      {/* Single hidden file input — always present */}
       <input
         ref={inputRef}
-        id={`upload-${title.replace(/\s+/g, "-").toLowerCase()}`}
+        id={inputId}
         type="file"
         accept=".pdf,.txt"
         className="sr-only"
@@ -89,129 +88,166 @@ export default function UploadCard({
       {file ? (
         /* ── File selected state ── */
         <div className="flex flex-1 flex-col p-5">
-          <div className="flex items-start gap-3">
+          {/* File info */}
+          <div className="flex items-start gap-4">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: "#F1EBF7", color: "#55416E" }}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: accentBg, color: accentColor }}
             >
-              {icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p
-                  className="truncate text-sm font-semibold"
-                  style={{ color: "#292039" }}
-                >
-                  {file.name}
-                </p>
-                <span
-                  className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold"
-                  style={{ backgroundColor: "#F1EBF7", color: "#55416E" }}
-                >
-                  {getTypeBadge(file)}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs" style={{ color: "#83778F" }}>
-                {formatFileSize(file.size)}
-              </p>
+              {uploading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <FileTypeIcon name={file.name} />
+              )}
             </div>
 
-            {/* Remove button — replaced by spinner when uploading */}
-            {uploading ? (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center">
-                <Loader2 size={14} className="animate-spin" style={{ color: "#55416E" }} />
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p
+                className="text-[14px] font-semibold truncate leading-tight"
+                style={{ color: "#292039" }}
+              >
+                {file.name}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase"
+                  style={{ backgroundColor: accentBg, color: accentColor }}
+                >
+                  {file.name.split(".").pop()?.toUpperCase() ?? "FILE"}
+                </span>
+                <span className="text-[12px]" style={{ color: "#83778F" }}>
+                  {formatSize(file.size)}
+                </span>
+                {uploading && (
+                  <span className="text-[11px] font-medium" style={{ color: accentColor }}>
+                    Processing…
+                  </span>
+                )}
               </div>
-            ) : (
+            </div>
+
+            {!uploading && (
               <button
                 type="button"
                 aria-label={`Remove ${file.name}`}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors"
-                style={{ color: "#C34E5A" }}
                 onClick={handleRemove}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#FDE8EA")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "transparent")
-                }
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all"
+                style={{ color: "#A89BB0" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#FDE8EA";
+                  e.currentTarget.style.color = "#C34E5A";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#A89BB0";
+                }}
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             )}
           </div>
 
-          {/* Replace file link — hidden when uploading */}
-          {!uploading && (
-            <label
-              htmlFor={`upload-${title.replace(/\s+/g, "-").toLowerCase()}`}
-              className="mt-auto cursor-pointer pt-4 text-xs font-medium transition-colors"
-              style={{ color: "#55416E" }}
-            >
-              Replace file
-            </label>
-          )}
+          {/* Document label bar */}
+          <div
+            className="mt-4 rounded-lg px-3 py-2.5 flex items-center gap-2"
+            style={{ backgroundColor: accentBg }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: accentColor }}
+            />
+            <span className="text-[12px] font-semibold" style={{ color: accentColor }}>
+              {title}
+            </span>
+            {!uploading && (
+              <label
+                htmlFor={inputId}
+                className="ml-auto cursor-pointer text-[11px] font-semibold underline-offset-2 hover:underline"
+                style={{ color: accentColor }}
+              >
+                Replace
+              </label>
+            )}
+          </div>
+
+          {/* Fill remaining space to match empty card height */}
+          <div className="flex-1" />
         </div>
       ) : (
-        /* ── Empty / drag state ── */
+        /* ── Empty / drag-over state ── */
         <label
-          htmlFor={`upload-${title.replace(/\s+/g, "-").toLowerCase()}`}
-          className="flex flex-1 cursor-pointer flex-col p-5"
+          htmlFor={inputId}
+          className="flex flex-1 cursor-pointer flex-col items-center justify-center px-6 py-7 text-center select-none"
           aria-label={`Upload ${title}`}
         >
-          <div className="flex items-start justify-between">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: "#EEE7F3", color: "#55416E" }}
-            >
-              {icon}
-            </div>
-            <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-medium"
-              style={{ backgroundColor: "#FFFFFF", color: "#83778F", border: "1px solid #E9E2EF" }}
-            >
-              PDF / TXT
-            </span>
+          {/* Centered icon */}
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200"
+            style={{
+              backgroundColor: dragOver ? accentColor : accentBg,
+              color: dragOver ? "#FFFFFF" : accentColor,
+              boxShadow: dragOver ? `0 4px 16px ${accentColor}40` : "none",
+            }}
+          >
+            <CloudUpload size={22} />
           </div>
 
-          <div className="mt-4 flex-1">
-            <p className="text-sm font-semibold" style={{ color: "#292039" }}>
-              {title}
-            </p>
-            <p className="mt-0.5 text-xs font-medium" style={{ color: "#83778F" }}>
-              {subtitle}
-            </p>
-            <p className="mt-1 text-xs" style={{ color: "#A89BB0" }}>
-              {description}
-            </p>
-          </div>
+          {/* Title */}
+          <p
+            className="mt-4 text-[14px] font-bold leading-tight"
+            style={{ color: "#292039" }}
+          >
+            {title}
+          </p>
 
-          <div className="mt-4 flex items-center gap-2">
-            <span
-              className="flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors"
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderColor: dragOver ? "#55416E" : "#E3D9E9",
-                color: "#55416E",
-              }}
-            >
-              <Upload size={13} />
-              {dragOver ? "Drop here" : "Choose file"}
-            </span>
-            <span className="text-xs" style={{ color: "#A89BB0" }}>
-              or drag &amp; drop
-            </span>
-          </div>
+          {/* Description */}
+          <p
+            className="mt-1.5 text-[12.5px] leading-relaxed max-w-[210px]"
+            style={{ color: "#83778F" }}
+          >
+            {description}
+          </p>
+
+          {/* Drag and drop or Browse */}
+          <p
+            className="mt-3.5 text-[12.5px] font-medium"
+            style={{ color: dragOver ? accentColor : "#83778F" }}
+          >
+            {dragOver ? (
+              "Release to upload"
+            ) : (
+              <>
+                Drag and drop or{" "}
+                <span
+                  className="font-semibold underline underline-offset-2"
+                  style={{ color: accentColor }}
+                >
+                  Browse
+                </span>
+              </>
+            )}
+          </p>
+
+          {/* Format hint */}
+          <p className="mt-3 text-[11px]" style={{ color: "#B8ADCA" }}>
+            PDF or TXT · Max 5 MB
+          </p>
         </label>
       )}
 
+      {/* Error message */}
       {error && (
-        <p
+        <div
           role="alert"
-          className="px-5 pb-3 text-xs font-medium"
+          className="px-5 pb-4 flex items-center gap-2 text-[12px] font-medium"
           style={{ color: "#C34E5A" }}
         >
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: "#C34E5A" }}
+          />
           {error}
-        </p>
+        </div>
       )}
     </div>
   );
