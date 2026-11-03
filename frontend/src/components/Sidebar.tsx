@@ -71,7 +71,7 @@ export default function Sidebar({ activePage, onNavigate, healthStatus }: Sideba
           </p>
           <p
             className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: "#B09DC0" }}
+            style={{ color: "#A89BB0" }}
           >
             Payment Intelligence
           </p>
@@ -101,7 +101,7 @@ export default function Sidebar({ activePage, onNavigate, healthStatus }: Sideba
                     style={{
                       height: "40px",
                       backgroundColor: active ? "#F1EBF7" : "transparent",
-                      color: active ? "#55416E" : "#7A6E86",
+                      color: active ? "#55416E" : "#83778F",
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
@@ -112,7 +112,7 @@ export default function Sidebar({ activePage, onNavigate, healthStatus }: Sideba
                     onMouseLeave={(e) => {
                       if (!active) {
                         e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "#7A6E86";
+                        e.currentTarget.style.color = "#83778F";
                       }
                     }}
                   >

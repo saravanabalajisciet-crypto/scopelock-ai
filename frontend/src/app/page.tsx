@@ -525,15 +525,15 @@ function ProductMockup() {
         >
           <span
             className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: "#FF5F57" }}
+            style={{ backgroundColor: "#A89BB0" }}
           />
           <span
             className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: "#FFBD2E" }}
+            style={{ backgroundColor: "#A89BB0" }}
           />
           <span
             className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: "#28C840" }}
+            style={{ backgroundColor: "#A89BB0" }}
           />
           <div
             className="ml-3 flex flex-1 items-center rounded-md px-3 py-1 text-[10px]"

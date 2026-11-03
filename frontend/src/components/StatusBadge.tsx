@@ -26,9 +26,9 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       label: "PASS",
     },
     REVIEW: {
-      bg: "#FEF3C7",
+      bg: "#FFF3D6",
       text: "#B7791F",
-      border: "#FDE68A",
+      border: "#EDD898",
       label: "REVIEW",
     },
     BLOCK: {

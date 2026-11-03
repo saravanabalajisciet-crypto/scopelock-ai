@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -63,9 +62,9 @@ const STATUS = {
     topBar: "#B7791F",
     bannerBg: "#FFFCF0",
     bannerBorder: "#EDD898",
-    textColor: "#6B4A0E",
-    labelBg: "#FEF3C7",
-    iconBg: "#FEF7E0",
+    textColor: "#B7791F",
+    labelBg: "#FFF3D6",
+    iconBg: "#FFF8E6",
   },
   BLOCK: {
     Icon: XCircle,
@@ -75,7 +74,7 @@ const STATUS = {
     topBar: "#C34E5A",
     bannerBg: "#FFF1F2",
     bannerBorder: "#F4BCBF",
-    textColor: "#7A1520",
+    textColor: "#C34E5A",
     labelBg: "#FDE8EA",
     iconBg: "#FDE8EA",
   },
@@ -105,12 +104,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
   const isBlock = validation.result === "BLOCK";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="space-y-3"
-    >
+    <div className="space-y-3">
       {/* ── Decision banner ── */}
       <div
         className="overflow-hidden rounded-xl"
@@ -122,7 +116,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
             : "0 2px 12px rgba(41,32,57,0.06)",
         }}
       >
-        {/* Accent bar — thicker for a financial-approval feel */}
+        {/* Accent bar */}
         <div className="h-1.5" style={{ backgroundColor: cfg.topBar }} />
 
         <div className="p-6">
@@ -155,7 +149,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
                 {cfg.body}
               </p>
 
-              {/* Approved amount — financial approval feel for PASS */}
+              {/* Approved amount — PASS only */}
               {isPass && (
                 <div
                   className="mt-4 flex items-end gap-2 rounded-xl px-4 py-3"
@@ -176,7 +170,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
                 </div>
               )}
 
-              {/* Block emphasis — serious, no payment path */}
+              {/* Block emphasis */}
               {isBlock && (
                 <p
                   className="mt-3.5 flex items-center gap-2 text-[12px] font-semibold"
@@ -204,7 +198,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           className="flex items-center gap-3 px-5 py-4"
           style={{ borderBottom: "1px solid #F0EBF5" }}
         >
-          <FileText size={14} style={{ color: "#7B6191" }} />
+          <FileText size={14} style={{ color: "#78628F" }} />
           <SectionLabel>Document Comparison</SectionLabel>
         </div>
 
@@ -224,7 +218,6 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           </span>
         </div>
 
-        {/* Rows: Amount, Milestone */}
         <div>
           <ComparisonRow
             label="Amount"
@@ -255,18 +248,19 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           className="flex items-center gap-3 px-5 py-4"
           style={{ borderBottom: "1px solid #F0EBF5" }}
         >
-          <ShieldCheck size={14} style={{ color: "#7B6191" }} />
+          <ShieldCheck size={14} style={{ color: "#78628F" }} />
           <SectionLabel>Validation Evidence</SectionLabel>
         </div>
-        <ul className="divide-y" style={{ borderColor: "#F8F4FC" }}>
+        <ul className="divide-y" style={{ borderColor: "#F0EBF5" }}>
           {validation.reasons.map((reason, i) => {
-            const color = isPass ? "#2E6641" : isBlock ? "#B03545" : "#7A5210";
-            const Icon2 = isPass ? CheckCircle2 : AlertTriangle;
+            // PASS → CheckCircle2 (green), BLOCK → XCircle (red), REVIEW → AlertTriangle (amber)
+            const Icon2 = isPass ? CheckCircle2 : isBlock ? XCircle : AlertTriangle;
+            const color = isPass ? "#4D7958" : isBlock ? "#C34E5A" : "#B7791F";
             return (
               <li
                 key={i}
                 className="flex items-start gap-3 px-5 py-3.5 text-[13px] leading-relaxed"
-                style={{ color: "#4A3F54", borderColor: "#F8F4FC" }}
+                style={{ color: "#292039", borderColor: "#F0EBF5" }}
               >
                 <Icon2 size={14} className="mt-0.5 shrink-0" style={{ color }} />
                 {reason}
@@ -286,7 +280,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
         }}
       >
         <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid #F0EBF5" }}>
-          <Hash size={13} style={{ color: "#7B6191" }} />
+          <Hash size={13} style={{ color: "#78628F" }} />
           <SectionLabel>Validation Reference</SectionLabel>
         </div>
         <div className="px-5 py-4">
@@ -299,7 +293,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
         </div>
       </div>
 
-      {/* ── PayPal CTA — separate well (PASS only) ── */}
+      {/* ── PayPal CTA — PASS only ── */}
       {isPass && onProceedToPayment && (
         <div
           className="overflow-hidden rounded-xl p-5"
@@ -364,7 +358,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           aria-expanded={rawOpen}
           className="flex w-full items-center justify-between px-5 py-3.5 text-[12px] font-semibold transition-colors"
           style={{ backgroundColor: "#FAFAFA", color: "#83778F" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F5F0F8")}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F7F4FA")}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FAFAFA")}
         >
           <span>Raw Extraction Data</span>
@@ -382,7 +376,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
                   className="mt-2 overflow-x-auto rounded-lg p-3 text-[11px] leading-relaxed"
                   style={{
                     backgroundColor: "#F7F5F9",
-                    color: "#403052",
+                    color: "#292039",
                     fontFamily: "var(--font-geist-mono, monospace)",
                   }}
                 >
@@ -393,7 +387,7 @@ export default function ValidationResult({ result, onProceedToPayment, paypalLoa
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -424,9 +418,9 @@ function ComparisonRow({
       </span>
       <span
         className="text-[14px] font-semibold break-words flex items-center gap-1.5"
-        style={{ color: mismatch ? "#B03545" : "#292039" }}
+        style={{ color: mismatch ? "#C34E5A" : "#292039" }}
       >
-        {mismatch && <AlertTriangle size={13} className="shrink-0" style={{ color: "#B03545" }} />}
+        {mismatch && <AlertTriangle size={13} className="shrink-0" style={{ color: "#C34E5A" }} />}
         {requested}
       </span>
     </div>

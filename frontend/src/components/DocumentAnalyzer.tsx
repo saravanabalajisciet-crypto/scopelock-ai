@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
   ShieldCheck,
@@ -181,12 +180,7 @@ function ValidatePage({
   const activeStep = loading ? 2 : result ? 3 : filesSelected > 0 ? 1 : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       {/* Page heading */}
       <div>
         <h1
@@ -342,16 +336,8 @@ function ValidatePage({
           </div>
 
           {/* Analysis progress panel — visible only when loading=true */}
-          <AnimatePresence>
-            {loading && (
-              <motion.div
-                key="progress"
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: "auto", marginTop: 16 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ duration: 0.25 }}
-                className="overflow-hidden"
-              >
+          {loading && (
+            <div className="mt-4 overflow-hidden">
                 <div
                   className="rounded-xl p-5"
                   style={{ backgroundColor: "#F9F7FC", border: "1px solid #E9E2EF" }}
@@ -388,9 +374,8 @@ function ValidatePage({
                     ))}
                   </ul>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </div>
+          )}
 
           {/* Analyze button — full width, plum gradient when active */}
           <button
@@ -430,7 +415,7 @@ function ValidatePage({
             <div
               role="alert"
               className="mt-4 flex items-start gap-3 rounded-xl border p-4 text-[13px]"
-              style={{ backgroundColor: "#FDE8EA", borderColor: "#F4BCBF", color: "#B03545" }}
+              style={{ backgroundColor: "#FDE8EA", borderColor: "#F4BCBF", color: "#C34E5A" }}
             >
               <AlertCircle size={15} className="mt-0.5 shrink-0" />
               {error}
@@ -447,7 +432,7 @@ function ValidatePage({
           paypalLoading={paypalLoading}
         />
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -464,12 +449,7 @@ function OverviewPage({
   const isLoading = healthStatus === "loading";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-7"
-    >
+    <div className="space-y-7">
       <div>
         <h1
           className="text-[28px] sm:text-[32px] font-bold tracking-[-0.03em] leading-tight"
@@ -502,7 +482,7 @@ function OverviewPage({
                   style={
                     isOnline
                       ? { backgroundColor: "#E8F5EB", color: "#2E6641" }
-                      : { backgroundColor: "#FDE8EA", color: "#B03545" }
+                      : { backgroundColor: "#FDE8EA", color: "#C34E5A" }
                   }
                 >
                   {isOnline ? "Online" : "Offline"}
@@ -562,7 +542,7 @@ function OverviewPage({
               </div>
               <span
                 className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-                style={{ backgroundColor: "#FEF3C7", color: "#78510C" }}
+                style={{ backgroundColor: "#FFF3D6", color: "#B7791F" }}
               >
                 Sandbox
               </span>
@@ -622,7 +602,7 @@ function OverviewPage({
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -630,12 +610,7 @@ function OverviewPage({
 
 function HistoryPage() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-7"
-    >
+    <div className="space-y-7">
       <div>
         <h1 className="text-[28px] font-bold tracking-[-0.03em]" style={{ color: "#292039" }}>
           Validation History
@@ -664,7 +639,7 @@ function HistoryPage() {
           </p>
         </div>
       </SectionCard>
-    </motion.div>
+    </div>
   );
 }
 
@@ -672,12 +647,7 @@ function HistoryPage() {
 
 function SettingsPage({ apiUrl }: { apiUrl: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-7"
-    >
+    <div className="space-y-7">
       <div>
         <h1 className="text-[28px] font-bold tracking-[-0.03em]" style={{ color: "#292039" }}>
           Settings
@@ -718,7 +688,7 @@ function SettingsPage({ apiUrl }: { apiUrl: string }) {
           </div>
         </div>
       </SectionCard>
-    </motion.div>
+    </div>
   );
 }
 
