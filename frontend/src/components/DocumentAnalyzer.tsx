@@ -5,18 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
   ShieldCheck,
-  History,
-  Cpu,
   Brain,
   CreditCard,
   ArrowRight,
   AlertCircle,
-  Zap,
   LayoutDashboard,
   Upload,
-  ScanText,
-  FileCheck2,
-  CheckCircle2,
+  History,
+  Cpu,
 } from "lucide-react";
 
 import MobileNav from "@/components/MobileNav";
@@ -25,36 +21,12 @@ import type { Page } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import UploadCard from "@/components/UploadCard";
 import ValidationResult from "@/components/ValidationResult";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ValidationData {
-  result: "PASS" | "REVIEW" | "BLOCK";
-  reasons: string[];
-  agreed_amount: number;
-  requested_amount: number;
-  agreed_currency: string;
-  requested_currency: string;
-  agreed_milestone: string;
-  requested_milestone: string;
-}
-
-interface AnalysisResponse {
-  status: string;
-  validation_id: string;
-  agreement_file: string;
-  invoice_file: string;
-  validation: ValidationData;
-  agreement_extraction: Record<string, unknown>;
-  invoice_extraction: Record<string, unknown>;
-}
+import type { AnalysisResponse } from "@/components/ValidationResult";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
-// NOTE: ValidatePage must remain a module-level function.
-// Hooks inside it are valid only because React treats it as a stable component.
 const ANALYSIS_STAGES = [
   "Reading agreement document…",
   "Extracting invoice information…",
@@ -75,11 +47,7 @@ const WORKFLOW_STEPS = [
   { step: 3, label: "Payment Decision", icon: ShieldCheck },
 ];
 
-const EXPLAINER_STEPS = [
-  { icon: FileCheck2, label: "Agreement extracted" },
-  { icon: ScanText, label: "Terms compared" },
-  { icon: CheckCircle2, label: "Decision made" },
-];
+// ─── File validation helper ────────────────────────────────────────────────────
 
 function validateFile(file: File): string {
   const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
@@ -88,39 +56,9 @@ function validateFile(file: File): string {
   return "";
 }
 
-const fade = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.18, ease: "easeOut" },
-} as const;
-
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
-function Breadcrumb({ path }: { path: string[] }) {
-  return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {path.map((seg, i) => (
-        <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-[11px]" style={{ color: "#DDD4EB" }}>/</span>}
-          <span
-            className="text-[12px] font-medium"
-            style={{ color: i === path.length - 1 ? "#78628F" : "#B8ADCA" }}
-          >
-            {seg}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function SectionCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={`rounded-xl overflow-hidden ${className}`}
@@ -135,13 +73,7 @@ function SectionCard({
   );
 }
 
-function CardHeader({
-  left,
-  right,
-}: {
-  left: React.ReactNode;
-  right?: React.ReactNode;
-}) {
+function CardHeader({ left, right }: { left: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div
       className="flex items-center justify-between px-6 py-4"
@@ -154,7 +86,7 @@ function CardHeader({
 }
 
 // ─── Validate Page ─────────────────────────────────────────────────────────────
-// NOTE: This function must stay at module scope (not inside DocumentAnalyzer).
+// CRITICAL: defined at module scope (not inside DocumentAnalyzer) because it uses hooks.
 
 function ValidatePage({
   agreement,
@@ -195,7 +127,7 @@ function ValidatePage({
   handleProceedToPayment: () => void;
   paypalLoading: boolean;
 }) {
-  // canAnalyze is derived locally — NOT a prop
+  // canAnalyze computed locally from props — NOT a prop
   const canAnalyze = !!agreement && !!invoice && !loading && !agreementError && !invoiceError;
   const filesSelected = [agreement, invoice].filter(Boolean).length;
 
@@ -245,40 +177,33 @@ function ValidatePage({
     if (file) handleInvoiceChange(file);
   }
 
-  // Determine the active workflow step for the indicator
+  // Active workflow step: loading=2, result=3, filesSelected>0=1, else 0
   const activeStep = loading ? 2 : result ? 3 : filesSelected > 0 ? 1 : 0;
 
   return (
-    <motion.div {...fade} className="space-y-6">
-      <Breadcrumb path={["Workspace", "Validate Documents"]} />
-
-      {/* Hero heading */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1
-            className="text-[30px] sm:text-[34px] font-bold tracking-[-0.04em] leading-tight"
-            style={{ color: "#292039" }}
-          >
-            Verify before you pay.
-          </h1>
-          <p
-            className="mt-2.5 text-[14px] leading-relaxed max-w-xl"
-            style={{ color: "#83778F" }}
-          >
-            Compare agreements and invoices with AI-powered intelligence.
-            Detect discrepancies before money moves.
-          </p>
-        </div>
-        <div
-          className="shrink-0 flex items-center gap-2 rounded-full px-4 py-2"
-          style={{ backgroundColor: "#F1EBF7", color: "#55416E" }}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="space-y-6"
+    >
+      {/* Page heading */}
+      <div>
+        <h1
+          className="text-[30px] sm:text-[34px] font-bold tracking-[-0.04em] leading-tight"
+          style={{ color: "#292039" }}
         >
-          <Zap size={12} />
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em]">AI-Powered</span>
-        </div>
+          Verify before you pay.
+        </h1>
+        <p
+          className="mt-2.5 text-[14px] leading-relaxed max-w-xl"
+          style={{ color: "#83778F" }}
+        >
+          Compare agreements and invoices with AI-powered intelligence before authorizing payment.
+        </p>
       </div>
 
-      {/* Workflow steps strip — 3-step indicator */}
+      {/* 3-step progress strip */}
       <div
         className="flex items-center gap-2 rounded-xl px-4 py-3.5 sm:px-5"
         style={{
@@ -304,10 +229,7 @@ function ValidatePage({
                   {reached && step < activeStep ? "✓" : step}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Icon
-                    size={13}
-                    style={{ color: reached ? "#55416E" : "#A89BB0" }}
-                  />
+                  <Icon size={13} style={{ color: reached ? "#55416E" : "#A89BB0" }} />
                   <span
                     className="text-[12.5px] font-semibold whitespace-nowrap"
                     style={{ color: reached ? "#292039" : "#A89BB0" }}
@@ -319,10 +241,7 @@ function ValidatePage({
               {i < WORKFLOW_STEPS.length - 1 && (
                 <div
                   className="h-px flex-1"
-                  style={{
-                    backgroundColor:
-                      activeStep > step ? "#D8CCE4" : "#EFE9F4",
-                  }}
+                  style={{ backgroundColor: activeStep > step ? "#D8CCE4" : "#EFE9F4" }}
                 />
               )}
             </div>
@@ -330,7 +249,7 @@ function ValidatePage({
         })}
       </div>
 
-      {/* Upload workspace */}
+      {/* Upload workspace card */}
       <SectionCard>
         <CardHeader
           left={
@@ -391,7 +310,7 @@ function ValidatePage({
             />
           </div>
 
-          {/* Progress steps indicator */}
+          {/* Progress indicator dots */}
           <div className="mt-5 flex items-center gap-3">
             {[
               { label: "Agreement", filled: !!agreement && !agreementError },
@@ -422,7 +341,7 @@ function ValidatePage({
             ))}
           </div>
 
-          {/* Analysis progress panel — no fake checkmarks */}
+          {/* Analysis progress panel — visible only when loading=true */}
           <AnimatePresence>
             {loading && (
               <motion.div
@@ -435,10 +354,7 @@ function ValidatePage({
               >
                 <div
                   className="rounded-xl p-5"
-                  style={{
-                    backgroundColor: "#F9F7FC",
-                    border: "1px solid #E9E2EF",
-                  }}
+                  style={{ backgroundColor: "#F9F7FC", border: "1px solid #E9E2EF" }}
                 >
                   <p
                     className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em]"
@@ -453,6 +369,7 @@ function ValidatePage({
                         className="flex items-center gap-3 text-[13px]"
                         style={{ color: i <= stageIndex ? "#292039" : "#C2B7CE" }}
                       >
+                        {/* current = Loader2 spinner; past = dim gray dot (NOT CheckCircle2); future = empty circle border */}
                         {i < stageIndex ? (
                           <span
                             className="h-3.5 w-3.5 shrink-0 rounded-full"
@@ -475,7 +392,7 @@ function ValidatePage({
             )}
           </AnimatePresence>
 
-          {/* Analyze button — full width, gradient plum */}
+          {/* Analyze button — full width, plum gradient when active */}
           <button
             type="button"
             onClick={analyzeDocuments}
@@ -522,43 +439,7 @@ function ValidatePage({
         </div>
       </SectionCard>
 
-      {/* How validation works — compact explainer strip */}
-      <div
-        className="flex flex-col items-stretch gap-3 rounded-xl px-5 py-4 sm:flex-row sm:items-center sm:gap-5"
-        style={{
-          backgroundColor: "#FBFAFC",
-          border: "1px solid #E9E2EF",
-        }}
-      >
-        <span
-          className="shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] sm:self-center"
-          style={{ color: "#A89BB0" }}
-        >
-          How validation works
-        </span>
-        <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-          {EXPLAINER_STEPS.map(({ icon: Icon, label }, i) => (
-            <div key={label} className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex h-7 w-7 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: "#F1EBF7", color: "#55416E" }}
-                >
-                  <Icon size={13} />
-                </div>
-                <span className="text-[12.5px] font-medium" style={{ color: "#55416E" }}>
-                  {label}
-                </span>
-              </div>
-              {i < EXPLAINER_STEPS.length - 1 && (
-                <ArrowRight size={13} style={{ color: "#C2B7CE" }} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Result */}
+      {/* Validation result */}
       {result && (
         <ValidationResult
           result={result}
@@ -570,7 +451,7 @@ function ValidatePage({
   );
 }
 
-// ─── Overview Page ────────────────────────────────────────────────────────────
+// ─── Overview Page ─────────────────────────────────────────────────────────────
 
 function OverviewPage({
   healthStatus,
@@ -583,45 +464,25 @@ function OverviewPage({
   const isLoading = healthStatus === "loading";
 
   return (
-    <motion.div {...fade} className="space-y-7">
-      <Breadcrumb path={["Workspace", "Overview"]} />
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1
-            className="text-[28px] sm:text-[32px] font-bold tracking-[-0.03em] leading-tight"
-            style={{ color: "#292039" }}
-          >
-            Payment Intelligence
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "#83778F" }}>
-            Powered by Gemini AI and secured by ScopeLock validation engine.
-          </p>
-        </div>
-        <div className="shrink-0">
-          {isLoading ? (
-            <div className="h-8 w-44 animate-pulse rounded-full" style={{ backgroundColor: "#EEE7F3" }} />
-          ) : isOnline ? (
-            <div
-              className="flex items-center gap-2 rounded-full px-4 py-2"
-              style={{ backgroundColor: "#F0F8F2", border: "1px solid #B8D9BE", color: "#2E6641" }}
-            >
-              <CheckCircle2 size={12} strokeWidth={2.5} />
-              <span className="text-[12px] font-semibold">All systems operational</span>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-2 rounded-full px-4 py-2"
-              style={{ backgroundColor: "#FDE8EA", border: "1px solid #F4BCBF", color: "#B03545" }}
-            >
-              <AlertCircle size={12} strokeWidth={2.5} />
-              <span className="text-[12px] font-semibold">Service unavailable</span>
-            </div>
-          )}
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="space-y-7"
+    >
+      <div>
+        <h1
+          className="text-[28px] sm:text-[32px] font-bold tracking-[-0.03em] leading-tight"
+          style={{ color: "#292039" }}
+        >
+          Payment Intelligence
+        </h1>
+        <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "#83778F" }}>
+          Powered by Gemini AI and secured by ScopeLock validation engine.
+        </p>
       </div>
 
-      {/* System cards */}
+      {/* System status cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Validation Engine */}
         <SectionCard>
@@ -719,7 +580,7 @@ function OverviewPage({
         </SectionCard>
       </div>
 
-      {/* CTA to start — prominent */}
+      {/* Start Validation CTA banner */}
       <div
         className="relative overflow-hidden rounded-2xl"
         style={{
@@ -727,14 +588,6 @@ function OverviewPage({
           boxShadow: "0 12px 36px rgba(41,32,57,0.16)",
         }}
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            background:
-              "radial-gradient(420px 220px at 85% 0%, rgba(241,235,247,0.18), transparent 60%)",
-          }}
-        />
         <div className="relative flex flex-col items-center px-6 py-12 text-center">
           <div
             className="flex h-14 w-14 items-center justify-center rounded-2xl"
@@ -748,7 +601,10 @@ function OverviewPage({
           <p className="mt-5 text-[19px] font-bold" style={{ color: "#FFFFFF" }}>
             Ready to validate
           </p>
-          <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed" style={{ color: "#FFFFFF", opacity: 0.82 }}>
+          <p
+            className="mt-2 max-w-sm text-[13.5px] leading-relaxed"
+            style={{ color: "rgba(255,255,255,0.82)" }}
+          >
             Upload an agreement and invoice to run AI-powered document validation and authorize payments safely.
           </p>
           <button
@@ -774,9 +630,12 @@ function OverviewPage({
 
 function HistoryPage() {
   return (
-    <motion.div {...fade} className="space-y-7">
-      <Breadcrumb path={["Workspace", "Validation History"]} />
-
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="space-y-7"
+    >
       <div>
         <h1 className="text-[28px] font-bold tracking-[-0.03em]" style={{ color: "#292039" }}>
           Validation History
@@ -801,10 +660,7 @@ function HistoryPage() {
             History API not yet available
           </p>
           <p className="mt-2 max-w-sm text-[13px] leading-relaxed" style={{ color: "#83778F" }}>
-            The backend does not yet expose a history retrieval endpoint. Completed records are stored in the SQLite database but are not yet accessible via the API.
-          </p>
-          <p className="mt-3 text-[11px]" style={{ color: "#B8ADCA" }}>
-            This feature will be available in a future API version.
+            Validation records are stored in SQLite but no GET endpoint exists yet. This feature will be available in a future API version.
           </p>
         </div>
       </SectionCard>
@@ -816,9 +672,12 @@ function HistoryPage() {
 
 function SettingsPage({ apiUrl }: { apiUrl: string }) {
   return (
-    <motion.div {...fade} className="space-y-7">
-      <Breadcrumb path={["Workspace", "Settings"]} />
-
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="space-y-7"
+    >
       <div>
         <h1 className="text-[28px] font-bold tracking-[-0.03em]" style={{ color: "#292039" }}>
           Settings
@@ -834,7 +693,10 @@ function SettingsPage({ apiUrl }: { apiUrl: string }) {
         />
         <div className="space-y-5 p-6">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#A89BB0" }}>
+            <p
+              className="text-[10px] font-bold uppercase tracking-[0.14em]"
+              style={{ color: "#A89BB0" }}
+            >
               API Endpoint
             </p>
             <p className="mt-2 font-mono text-[13px]" style={{ color: "#292039" }}>
@@ -863,7 +725,6 @@ function SettingsPage({ apiUrl }: { apiUrl: string }) {
 // ─── Root component ───────────────────────────────────────────────────────────
 
 export default function DocumentAnalyzer() {
-  // Default entry point: validate (the hero experience)
   const [activePage, setActivePage] = useState<Page>("validate");
   const [agreement, setAgreement] = useState<File | null>(null);
   const [invoice, setInvoice] = useState<File | null>(null);
@@ -884,36 +745,22 @@ export default function DocumentAnalyzer() {
       .catch(() => setHealthStatus("unhealthy"));
   }, []);
 
-  // ─── API: analyze documents ─────────────────────────────────────────────────
   async function analyzeDocuments() {
     if (!agreement || !invoice) { setError("Please select both files."); return; }
-    setLoading(true);
-    setError("");
-    setResult(null);
+    setLoading(true); setError(""); setResult(null);
     const formData = new FormData();
     formData.append("agreement_file", agreement);
     formData.append("invoice_file", invoice);
     try {
-      const response = await fetch(`${API_URL}/documents/analyze`, {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(`${API_URL}/documents/analyze`, { method: "POST", body: formData });
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(
-          typeof data.detail === "string"
-            ? data.detail
-            : data.detail?.message || "Document analysis failed."
-        );
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : data.detail?.message || "Document analysis failed.");
       setResult(data as AnalysisResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to connect to the backend.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  // ─── API: PayPal create order ───────────────────────────────────────────────
   async function handleProceedToPayment() {
     if (!result || result.validation.result !== "PASS") return;
     const v = result.validation;
@@ -923,40 +770,28 @@ export default function DocumentAnalyzer() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agreed_amount: v.agreed_amount,
-          requested_amount: v.requested_amount,
-          agreed_milestone: v.agreed_milestone,
-          requested_milestone: v.requested_milestone,
-          agreed_currency: v.agreed_currency,
-          requested_currency: v.requested_currency,
+          agreed_amount: v.agreed_amount, requested_amount: v.requested_amount,
+          agreed_milestone: v.agreed_milestone, requested_milestone: v.requested_milestone,
+          agreed_currency: v.agreed_currency, requested_currency: v.requested_currency,
         }),
       });
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(
-          typeof data.detail === "string"
-            ? data.detail
-            : data.detail?.message || "Order creation failed."
-        );
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : data.detail?.message || "Order creation failed.");
       if (data.approval_url) window.location.href = data.approval_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "PayPal order creation failed.");
-    } finally {
-      setPaypalLoading(false);
-    }
+    } finally { setPaypalLoading(false); }
   }
 
   const { title, description } = PAGE_META[activePage];
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#F7F5F9" }}>
+    <div className="flex h-screen overflow-hidden bg-[#F7F5F9]">
       <Sidebar activePage={activePage} onNavigate={setActivePage} healthStatus={healthStatus} />
-
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar title={title} description={description} healthStatus={healthStatus} />
-
         <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
-          <div className="mx-auto w-full max-w-[1100px] px-5 py-8 sm:px-7 lg:px-10 lg:py-10">
+          <div className="mx-auto w-full max-w-[1060px] px-5 py-8 sm:px-7 lg:px-10 lg:py-10">
             {activePage === "validate" && (
               <ValidatePage
                 agreement={agreement}
@@ -990,7 +825,6 @@ export default function DocumentAnalyzer() {
           </div>
         </main>
       </div>
-
       <MobileNav activePage={activePage} onNavigate={setActivePage} />
     </div>
   );
