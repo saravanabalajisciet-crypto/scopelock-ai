@@ -1,14 +1,15 @@
+
 import logging
 import os
-import sqlite3
+from contextlib import asynccontextmanager
 from decimal import Decimal
-from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from database import get_connection, init_db
 from documents import router as documents_router
 from paypal_client import (
     create_order,
@@ -19,36 +20,19 @@ from paypal_client import (
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path(
-    os.getenv(
-        "DATABASE_PATH",
-        str(Path(__file__).with_name("scopelock_orders.db")),
-    )
-).expanduser()
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    logger.info("ScopeLock PostgreSQL database initialized.")
+    yield
 
-def init_order_store():
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS payment_orders (
-                order_id TEXT PRIMARY KEY,
-                amount TEXT NOT NULL,
-                currency TEXT NOT NULL,
-                milestone TEXT NOT NULL,
-                status TEXT NOT NULL
-            )
-            """
-        )
-
-
-init_order_store()
 
 app = FastAPI(
     title="ScopeLock AI",
     description="AI-powered agreement and invoice validation with PayPal.",
-    version="0.6.0",
+    version="0.7.0",
+    lifespan=lifespan,
 )
 
 # CORS: Local development plus the configured deployed frontend.
@@ -211,12 +195,12 @@ async def paypal_create_order(data: PaymentValidationRequest):
         if not approval_url:
             raise RuntimeError("PayPal approval URL was not returned.")
 
-        with sqlite3.connect(DB_PATH) as connection:
+        with get_connection() as connection:
             connection.execute(
                 """
                 INSERT INTO payment_orders
                 (order_id, amount, currency, milestone, status)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (
                     order_id,
@@ -246,10 +230,9 @@ async def paypal_create_order(data: PaymentValidationRequest):
 
 @app.get("/paypal/return")
 async def paypal_return(token: str):
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.row_factory = sqlite3.Row
+    with get_connection() as connection:
         saved_order = connection.execute(
-            "SELECT * FROM payment_orders WHERE order_id = ?",
+            "SELECT * FROM payment_orders WHERE order_id = %s",
             (token,),
         ).fetchone()
 
@@ -320,26 +303,28 @@ async def paypal_return(token: str):
                 },
             )
 
-        with sqlite3.connect(DB_PATH) as connection:
+        capture_id = (
+            capture.get("purchase_units", [{}])[0]
+            .get("payments", {})
+            .get("captures", [{}])[0]
+            .get("id")
+        )
+
+        with get_connection() as connection:
             connection.execute(
                 """
                 UPDATE payment_orders
-                SET status = ?
-                WHERE order_id = ?
+                SET status = %s, capture_id = %s
+                WHERE order_id = %s
                 """,
-                ("COMPLETED", token),
+                ("COMPLETED", capture_id, token),
             )
 
         return {
             "status": "COMPLETED",
             "provider": "PayPal Sandbox",
             "order_id": token,
-            "capture_id": (
-                capture.get("purchase_units", [{}])[0]
-                .get("payments", {})
-                .get("captures", [{}])[0]
-                .get("id")
-            ),
+            "capture_id": capture_id,
             "message": "Payment successfully captured by PayPal.",
         }
 
@@ -357,12 +342,12 @@ async def paypal_return(token: str):
 @app.get("/paypal/cancel")
 def paypal_cancel(token: str | None = None):
     if token:
-        with sqlite3.connect(DB_PATH) as connection:
+        with get_connection() as connection:
             connection.execute(
                 """
                 UPDATE payment_orders
-                SET status = ?
-                WHERE order_id = ? AND status = ?
+                SET status = %s
+                WHERE order_id = %s AND status = %s
                 """,
                 ("CANCELLED", token, "CREATED"),
             )

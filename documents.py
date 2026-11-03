@@ -1,9 +1,8 @@
+
 import asyncio
 import json
 import logging
-import os
 import re
-import sqlite3
 import uuid
 
 from decimal import Decimal, InvalidOperation
@@ -14,6 +13,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pypdf import PdfReader
 
 from ai_service import extract_document
+from database import get_connection
 
 logger = logging.getLogger(__name__)
 
@@ -24,35 +24,16 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt"}
 
 REQUIRED_FIELDS = ("amount", "currency", "milestone")
 
-# Use the same configurable SQLite database as main.py.
-DB_PATH = Path(
-    os.getenv(
-        "DATABASE_PATH",
-        str(Path(__file__).with_name("scopelock_orders.db")),
-    )
-).expanduser()
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-
 
 def store_validation_record(validation_id: str, validation: dict):
-    """Persist the server-generated document validation result."""
+    """Persist the server-generated document validation result in PostgreSQL."""
 
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS validation_records (
-                validation_id TEXT PRIMARY KEY,
-                result TEXT NOT NULL,
-                validation_json TEXT NOT NULL
-            )
-            """
-        )
-
+    with get_connection() as connection:
         connection.execute(
             """
             INSERT INTO validation_records
-            (validation_id, result, validation_json)
-            VALUES (?, ?, ?)
+            (validation_id, result, validation_json, used)
+            VALUES (%s, %s, %s, 0)
             """,
             (
                 validation_id,
@@ -105,6 +86,7 @@ async def read_document(file: UploadFile):
     except HTTPException:
         raise
     except Exception:
+        logger.exception("Document reading failed for %s", filename)
         raise HTTPException(
             status_code=400,
             detail=f"{filename}: Unable to read this document.",
@@ -296,7 +278,7 @@ async def analyze_documents(
         # Generate a unique ID for this server-side validation.
         validation_id = str(uuid.uuid4())
 
-        # Save the validation result for PayPal checkout authorization.
+        # Save the validation result in Neon PostgreSQL.
         await asyncio.to_thread(
             store_validation_record,
             validation_id,
