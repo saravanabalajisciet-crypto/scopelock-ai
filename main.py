@@ -1,4 +1,5 @@
 import logging
+import os
 import sqlite3
 from decimal import Decimal
 from pathlib import Path
@@ -18,7 +19,13 @@ from paypal_client import (
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path(__file__).with_name("scopelock_orders.db")
+DB_PATH = Path(
+    os.getenv(
+        "DATABASE_PATH",
+        str(Path(__file__).with_name("scopelock_orders.db")),
+    )
+).expanduser()
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 def init_order_store():
@@ -44,13 +51,18 @@ app = FastAPI(
     version="0.6.0",
 )
 
-# CORS: Allow the Next.js frontend to communicate with FastAPI.
+# CORS: Local development plus the configured deployed frontend.
+frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

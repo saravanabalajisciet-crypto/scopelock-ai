@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import re
 import sqlite3
 import uuid
@@ -23,8 +24,14 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt"}
 
 REQUIRED_FIELDS = ("amount", "currency", "milestone")
 
-# Use the same SQLite database as main.py.
-DB_PATH = Path(__file__).with_name("scopelock_orders.db")
+# Use the same configurable SQLite database as main.py.
+DB_PATH = Path(
+    os.getenv(
+        "DATABASE_PATH",
+        str(Path(__file__).with_name("scopelock_orders.db")),
+    )
+).expanduser()
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 def store_validation_record(validation_id: str, validation: dict):

@@ -14,6 +14,21 @@ PAYPAL_BASE_URL = os.getenv(
     "https://api-m.sandbox.paypal.com",
 )
 
+BACKEND_PUBLIC_URL = os.getenv(
+    "BACKEND_PUBLIC_URL",
+    "http://127.0.0.1:8000",
+).strip().rstrip("/")
+
+PAYPAL_RETURN_URL = os.getenv(
+    "PAYPAL_RETURN_URL",
+    f"{BACKEND_PUBLIC_URL}/paypal/return",
+)
+
+PAYPAL_CANCEL_URL = os.getenv(
+    "PAYPAL_CANCEL_URL",
+    f"{BACKEND_PUBLIC_URL}/paypal/cancel",
+)
+
 
 async def get_access_token() -> dict:
     if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
@@ -68,8 +83,8 @@ async def create_order(
         "application_context": {
             "brand_name": "ScopeLock AI",
             "user_action": "PAY_NOW",
-            "return_url": "http://127.0.0.1:8000/paypal/return",
-            "cancel_url": "http://127.0.0.1:8000/paypal/cancel",
+            "return_url": PAYPAL_RETURN_URL,
+            "cancel_url": PAYPAL_CANCEL_URL,
         },
     }
 
