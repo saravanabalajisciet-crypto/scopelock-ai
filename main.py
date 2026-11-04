@@ -1,4 +1,3 @@
-
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -35,12 +34,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: Local development plus the configured deployed frontend.
+
+# CORS: Local development and deployed Vercel frontends.
 frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://scopelock-ai-eight.vercel.app",
+    "https://scopelock-ai-frontend.vercel.app",
 ]
+
 if frontend_url and frontend_url not in allowed_origins:
     allowed_origins.append(frontend_url)
 
